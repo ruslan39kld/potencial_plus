@@ -1,8 +1,8 @@
 aiogram==3.4.1
 gigachat==0.1.28
-sentence-transformers==2.3.1
-faiss-cpu==1.7.4
-rank-bm25==0.2.2
+# sentence-transformers==2.3.1  ← ЗАКОММЕНТИРОВАТЬ
+# faiss-cpu==1.7.4               ← ЗАКОММЕНТИРОВАТЬ
+# rank-bm25==0.2.2               ← ЗАКОММЕНТИРОВАТЬ
 numpy==1.24.3
 httpx==0.25.2
 python-dotenv==1.0.0
