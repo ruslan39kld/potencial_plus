@@ -123,35 +123,22 @@ async def init_components():
 
 
 # ============================================================
-# ГЛАВНОЕ МЕНЮ
+# ГЛАВНОЕ МЕНЮ (ОБНОВЛЁННОЕ С 2 КОЛОНКАМИ)
 # ============================================================
 
 def get_main_menu() -> InlineKeyboardMarkup:
-    """Главное меню бота"""
+    """Главное меню бота (2 столбца как в AI Инженере)"""
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🎯 Карьерный помощник", callback_data="assistant_career"),
-        ],
-        [
+            InlineKeyboardButton(text="🎯 Карьерный помощник", callback_data="menu_career"),
             InlineKeyboardButton(text="💰 Финансовый план", callback_data="assistant_finance"),
         ],
         [
-            InlineKeyboardButton(text="🧠 Психолог", callback_data="assistant_psychology"),
+            InlineKeyboardButton(text="🧠 Поддержка", callback_data="menu_support"),
+            InlineKeyboardButton(text="📊 Инструменты", callback_data="menu_tools"),
         ],
         [
-            InlineKeyboardButton(text="⚖️ Юрист", callback_data="assistant_legal"),
-            InlineKeyboardButton(text="🛡️ Безопасность", callback_data="assistant_safety"),
-        ],
-        [
-            InlineKeyboardButton(text="📋 Пройти тесты", callback_data="show_tests"),
-        ],
-        [
-            InlineKeyboardButton(text="📊 Вакансии", url=config.PLATFORMS['jobs']),
-            InlineKeyboardButton(text="🌍 Международные", url=config.PLATFORMS['international']),
-        ],
-        [
-            InlineKeyboardButton(text="ℹ️ О проекте", callback_data="about_project"),
-            InlineKeyboardButton(text="📈 Моя статистика", callback_data="my_stats"),
+            InlineKeyboardButton(text="❓ Что ты можешь?", callback_data="about_bot"),
         ]
     ])
     return keyboard
@@ -179,6 +166,64 @@ def get_tests_menu() -> InlineKeyboardMarkup:
 
 
 # ============================================================
+# ПОДМЕНЮ: КАРЬЕРНЫЙ ПОМОЩНИК (2 СТОЛБЦА)
+# ============================================================
+
+def get_career_submenu() -> InlineKeyboardMarkup:
+    """Подменю Карьерного помощника (2 столбца)"""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="💬 Задать вопрос", callback_data="assistant_career"),
+            InlineKeyboardButton(text="📋 Пройти диагностику", callback_data="career_diagnostics"),
+        ],
+        [
+            InlineKeyboardButton(text="📝 Усилить резюме", callback_data="career_resume"),
+            InlineKeyboardButton(text="🎯 Получить план", callback_data="career_plan"),
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Главное меню", callback_data="back_to_menu"),
+        ]
+    ])
+    return keyboard
+
+
+def get_support_submenu() -> InlineKeyboardMarkup:
+    """Подменю Поддержки"""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🧠 Психолог", callback_data="assistant_psychology"),
+        ],
+        [
+            InlineKeyboardButton(text="⚖️ Юрист", callback_data="assistant_legal"),
+        ],
+        [
+            InlineKeyboardButton(text="🛡️ Безопасность", callback_data="assistant_safety"),
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Главное меню", callback_data="back_to_menu"),
+        ]
+    ])
+    return keyboard
+
+
+def get_tools_submenu() -> InlineKeyboardMarkup:
+    """Подменю Инструментов (без Моя статистика)"""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📋 Пройти тесты", callback_data="show_tests"),
+        ],
+        [
+            InlineKeyboardButton(text="📊 Вакансии", url=config.PLATFORMS['jobs']),
+            InlineKeyboardButton(text="🌍 Международные", url=config.PLATFORMS['international']),
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Главное меню", callback_data="back_to_menu"),
+        ]
+    ])
+    return keyboard
+
+
+# ============================================================
 # КОМАНДЫ БОТА
 # ============================================================
 
@@ -196,14 +241,14 @@ async def cmd_start(message: types.Message):
     )
     
     await message.answer(
-        "👋 **Добро пожаловать в Potencial Plus!**\n\n"
+        "👋 **Карьерный консультант**\n\n"
         "Я помогу вам:\n"
         "• Построить карьерный план\n"
         "• Сформировать финансовую подушку\n"
         "• Найти вахтовую или международную работу\n"
         "• Преодолеть страх перемен\n"
         "• Разобраться в трудовых вопросах\n\n"
-        "**Выберите помощника ниже ⬇️**",
+        "Выберите раздел:",
         reply_markup=get_main_menu(),
         parse_mode="Markdown"
     )
@@ -213,21 +258,17 @@ async def cmd_help(message: types.Message):
     """Команда /help"""
     await message.answer(
         "📖 **Как пользоваться ботом:**\n\n"
-        "**1. Выберите ассистента**\n"
-        "Каждый ассистент специализируется на своей области:\n"
-        "• 🎯 Карьерный - подбор профессий и треков\n"
-        "• 💰 Финансовый - расчет накоплений\n"
-        "• 🧠 Психолог - работа со страхами\n"
-        "• ⚖️ Юрист - трудовые вопросы\n"
-        "• 🛡️ Безопасность - проверка вакансий\n\n"
+        "**1. Выберите раздел**\n"
+        "Навигация через меню:\n"
+        "• 🎯 Карьерный помощник — подбор профессий и планов\n"
+        "• 💰 Финансовый план — расчет накоплений и подушки\n"
+        "• 🧠 Поддержка — психолог, юрист, безопасность\n"
+        "• 📊 Инструменты — тесты, вакансии, статистика\n\n"
         "**2. Задавайте вопросы**\n"
-        "Просто напишите свой вопрос в чат\n\n"
+        "Просто напишите свой вопрос в чат после выбора ассистента\n\n"
         "**3. Проходите тесты**\n"
-        "Узнайте свои сильные стороны\n\n"
-        "**Лимиты:**\n"
-        f"• Бесплатно: {config.FREE_QUESTIONS_PER_DAY} вопросов/день\n"
-        f"• Всего в неделю: {config.FREE_QUESTIONS_PER_WEEK} вопросов\n\n"
-        "Используйте /menu для вызова меню",
+        "Узнайте свои сильные стороны и тип карьеры\n\n"
+        "Используйте /menu для вызова главного меню",
         parse_mode="Markdown"
     )
 
@@ -235,7 +276,7 @@ async def cmd_help(message: types.Message):
 async def cmd_menu(message: types.Message):
     """Команда /menu"""
     await message.answer(
-        "Выберите действие:",
+        "Выберите раздел:",
         reply_markup=get_main_menu()
     )
 
@@ -256,11 +297,11 @@ async def cmd_stats(message: types.Message):
 
 
 # ============================================================
-# ОБРАБОТЧИКИ CALLBACK
+# ОБРАБОТЧИКИ CALLBACK: ОСНОВНЫЕ
 # ============================================================
 
 async def handle_assistant_selection(callback: CallbackQuery):
-    """Выбор ассистента"""
+    """Выбор ассистента (прямой вызов)"""
     user_id = callback.from_user.id
     assistant_type = callback.data.replace("assistant_", "")
     
@@ -318,83 +359,211 @@ async def handle_show_tests(callback: CallbackQuery):
     await callback.answer()
 
 
-async def handle_about_project(callback: CallbackQuery):
-    """О проекте"""
-    about_text = (
-        "🎯 **Potencial Plus** — федеральный проект карьерного роста\n\n"
-        "**Мы помогаем:**\n"
-        "• Выйти из низкодоходного хаоса\n"
-        "• Построить четкий карьерный план\n"
-        "• Сформировать финансовую подушку\n"
-        "• Использовать вахту как инструмент роста\n"
-        "• Выйти на международный рынок труда\n\n"
-        "**Наши платформы:**\n"
-        f"• Основной сайт: {config.PLATFORMS['main']}\n"
-        f"• Вакансии: {config.PLATFORMS['jobs']}\n"
-        f"• Международные: {config.PLATFORMS['international']}\n\n"
-        "**Целевая аудитория:**\n"
-        "Россияне с доходом до 100 000 руб/мес\n\n"
-        "**Приоритетные профессии:**\n"
-    )
-    
-    for prof in config.TARGET_PROFESSIONS:
-        about_text += f"• {prof}\n"
-    
-    await callback.message.edit_text(
-        about_text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="« Назад", callback_data="back_to_menu")]
-        ]),
-        parse_mode="Markdown",
-        disable_web_page_preview=True
-    )
-    
-    await callback.answer()
-
-
 async def handle_my_stats(callback: CallbackQuery):
-    """Моя статистика"""
-    user_id = callback.from_user.id
-    database = _components['database']
-    
-    # Проверяем лимиты
-    can_ask, remaining = database.check_daily_limit(user_id, config.FREE_QUESTIONS_PER_DAY)
-    weekly_usage = database.get_weekly_usage(user_id)
-    
-    # История
-    history = database.get_user_history(user_id, limit=5)
-    
-    # Пройденные тесты
-    completed_tests = database.get_completed_tests(user_id)
-    
-    stats_text = (
-        f"📈 **Ваша статистика**\n\n"
-        f"**Использование:**\n"
-        f"• Осталось сегодня: {remaining} вопросов\n"
-        f"• За неделю: {weekly_usage} вопросов\n"
-        f"• Всего диалогов: {len(history)}\n\n"
-        f"**Пройдено тестов:** {len(completed_tests)}\n"
-    )
-    
-    if completed_tests:
-        stats_text += "\n".join([f"✅ {test}" for test in completed_tests[:3]])
-    
+    """Моя статистика — заглушка (функция сохранена для совместимости)"""
     await callback.message.edit_text(
-        stats_text,
+        "📈 **Статистика**\n\n"
+        "Этот раздел временно отключен.\n"
+        "Свяжитесь с администратором для получения детальной статистики.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="« Назад", callback_data="back_to_menu")]
         ]),
         parse_mode="Markdown"
     )
-    
     await callback.answer()
 
 
 async def handle_back_to_menu(callback: CallbackQuery):
     """Возврат в главное меню"""
     await callback.message.edit_text(
+        "👋 **Карьерный консультант**\n\n"
+        "Я помогу вам:\n"
+        "• Построить карьерный план\n"
+        "• Сформировать финансовую подушку\n"
+        "• Найти вахтовую или международную работу\n"
+        "• Преодолеть страх перемен\n"
+        "• Разобраться в трудовых вопросах\n\n"
+        "Выберите раздел:",
+        reply_markup=get_main_menu(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+# ============================================================
+# ОБРАБОТЧИКИ НОВЫХ МЕНЮ (ИЕРАРХИЯ)
+# ============================================================
+
+async def handle_menu_career(callback: CallbackQuery):
+    """Открытие меню Карьерного помощника"""
+    await callback.message.edit_text(
+        "🎯 **Карьерный помощник**\n\n"
+        "Я помогу вам:\n"
+        "• Определить ваш тип и сегмент (Выживание/Стабилизация/Рост)\n"
+        "• Построить карьерный план на 14-30 дней с конкретными шагами\n"
+        "• Усилить резюме и подготовиться к собеседованиям\n"
+        "• Найти работу с ростом дохода до 200 000+ руб/мес\n\n"
         "Выберите действие:",
-        reply_markup=get_main_menu()
+        reply_markup=get_career_submenu(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+async def handle_menu_support(callback: CallbackQuery):
+    """Открытие меню Поддержки"""
+    await callback.message.edit_text(
+        "🧠 **Поддержка**\n\n"
+        "Выберите специалиста:\n\n"
+        "🧠 **Психолог** — работа со страхами, мотивацией и тревогой перед переменами\n"
+        "⚖️ **Юрист** — трудовые вопросы, проверка договоров, права работника\n"
+        "🛡️ **Безопасность** — проверка вакансий на мошенничество, красные флаги",
+        reply_markup=get_support_submenu(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+async def handle_menu_tools(callback: CallbackQuery):
+    """Открытие меню Инструментов"""
+    await callback.message.edit_text(
+        "📊 **Инструменты**\n\n"
+        "Дополнительные возможности:\n"
+        "• 📋 Психологические тесты (Кос, Томас, Герчикова)\n"
+        "• 📊 Платформы вакансий (TempoJob, Russian.Works)\n"
+        "• 📈 Ваша статистика и прогресс",
+        reply_markup=get_tools_submenu(),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+async def handle_about_bot(callback: CallbackQuery):
+    """Кнопка 'Что ты можешь?'"""
+    about_text = """🤖 **POTENCIAL PLUS — AI-КОНСУЛЬТАНТ**
+
+**🎯 КАРЬЕРНЫЙ ПОМОЩНИК**
+- Диагностика за 5 вопросов (тип: Выживание/Стабилизация/Рост)
+- Персональные планы на 14-30 дней с конкретными шагами
+- Усиление резюме: обязанности → достижения с цифрами
+- Отслеживание воронки: отклики → собеседования → офферы
+
+**💰 ФИНАНСОВЫЙ ПЛАН**
+- Расчёт финансовой подушки (3-6 месяцев расходов)
+- Стратегии выхода из долгов
+- Вахта как инструмент быстрых накоплений
+- Планирование роста дохода по этапам
+
+**🧠 ПСИХОЛОГИЧЕСКАЯ ПОДДЕРЖКА**
+- Работа со страхом перемен и синдромом самозванца
+- Снижение тревожности перед собеседованиями
+- Возвращение мотивации после неудач
+
+**⚖️ ЮРИДИЧЕСКАЯ ПОМОЩЬ**
+- Базовые трудовые права по ТК РФ
+- Проверка договоров ГПХ и трудовых
+- Когда действительно нужен живой юрист
+
+**🛡️ БЕЗОПАСНОСТЬ**
+- Проверка вакансий на мошенничество
+- Красные флаги в предложениях работы
+
+**📊 СИСТЕМА РАБОТЫ**
+- 10 детальных сегментов клиентов
+- Деревья решений для выбора стратегии
+- Метрики и протоколы проверки прогресса
+
+**🌍 ПЛАТФОРМЫ:**
+potencial-plus.ru | tempojob.org | russian.works
+
+**Версия 2.0 | База знаний: 200 000+ символов**
+"""
+    
+    await callback.message.edit_text(
+        about_text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔙 Главное меню", callback_data="back_to_menu")]
+        ]),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+# ============================================================
+# ОБРАБОТЧИКИ: ДИАГНОСТИКА / РЕЗЮМЕ / ПЛАН (ОБНОВЛЁННЫЕ)
+# ============================================================
+
+async def handle_career_diagnostics(callback: CallbackQuery):
+    """Диагностика типа клиента"""
+    user_id = callback.from_user.id
+    
+    # АВТОМАТИЧЕСКИ ВЫБИРАЕМ КАРЬЕРНОГО ПОМОЩНИКА
+    user_assistant[user_id] = 'career'
+    database = _components['database']
+    database.set_selected_assistant(user_id, 'career')
+    
+    await callback.message.edit_text(
+        "📋 **Диагностика типа клиента**\n\n"
+        "Задайте вопрос в формате:\n"
+        "• «Какой у меня тип: Выживание, Стабилизация или Рост?»\n"
+        "• «Помоги определить мой карьерный сегмент»\n"
+        "• «Я [описание ситуации] — что мне делать?»\n\n"
+        "💬 **Напишите ваш вопрос в чат ниже** ⬇️",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="menu_career")]
+        ]),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+async def handle_career_resume(callback: CallbackQuery):
+    """Усиление резюме"""
+    user_id = callback.from_user.id
+    
+    # АВТОМАТИЧЕСКИ ВЫБИРАЕМ КАРЬЕРНОГО ПОМОЩНИКА
+    user_assistant[user_id] = 'career'
+    database = _components['database']
+    database.set_selected_assistant(user_id, 'career')
+    
+    await callback.message.edit_text(
+        "📝 **Усиление резюме**\n\n"
+        "Отправьте текст вашего резюме.\n"
+        "Я помогу:\n"
+        "• Переформулировать обязанности в достижения с цифрами\n"
+        "• Добавить ключевые слова для ATS-систем\n"
+        "• Усилить раздел «О себе» под целевые вакансии\n"
+        "• Проверить структуру и читаемость\n\n"
+        "💬 **Напишите текст резюме в чат ниже** ⬇️",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="menu_career")]
+        ]),
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+async def handle_career_plan(callback: CallbackQuery):
+    """Получить план"""
+    user_id = callback.from_user.id
+    
+    # АВТОМАТИЧЕСКИ ВЫБИРАЕМ КАРЬЕРНОГО ПОМОЩНИКА
+    user_assistant[user_id] = 'career'
+    database = _components['database']
+    database.set_selected_assistant(user_id, 'career')
+    
+    await callback.message.edit_text(
+        "🎯 **Получить персональный план**\n\n"
+        "Опишите:\n"
+        "• Вашу текущую ситуацию (доход, опыт, навыки)\n"
+        "• Цель (желаемый доход, сфера, формат работы)\n"
+        "• Ограничения (время, локация, семейные обстоятельства)\n\n"
+        "Я составлю пошаговый план на 14-30 дней с метриками контроля.\n\n"
+        "💬 **Напишите описание вашей ситуации в чат ниже** ⬇️",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="menu_career")]
+        ]),
+        parse_mode="Markdown"
     )
     await callback.answer()
 
@@ -412,23 +581,21 @@ async def handle_text_message(message: types.Message):
     gigachat_service = _components['gigachat_service']
     knowledge_base = _components.get('knowledge_base')
     
-    # Проверяем лимиты
-    can_ask, remaining = database.check_daily_limit(user_id, config.FREE_QUESTIONS_PER_DAY)
-    
-    if not can_ask:
-        await message.answer(
-            f"😔 Вы достигли дневного лимита вопросов.\n\n"
-            f"Бесплатный лимит: {config.FREE_QUESTIONS_PER_DAY} вопросов/день\n\n"
-            "Приходите завтра или оформите Premium для безлимитного доступа!",
-            parse_mode="Markdown"
-        )
-        return
+    # ❌ БЛОК ПРОВЕРКИ ЛИМИТОВ УДАЛЁН — вопросы без ограничений
     
     # Определяем выбранного ассистента
     assistant_type = user_assistant.get(user_id)
     if not assistant_type:
         assistant_type = database.get_selected_assistant(user_id)
         user_assistant[user_id] = assistant_type
+    
+    # Если ассистент не выбран — предлагаем выбрать
+    if not assistant_type:
+        await message.answer(
+            "🎯 Сначала выберите помощника в меню выше ⬆️",
+            reply_markup=get_main_menu()
+        )
+        return
     
     # Отправляем сообщение о процессе
     processing_msg = await message.answer("⏳ Обрабатываю ваш вопрос...")
@@ -442,21 +609,24 @@ async def handle_text_message(message: types.Message):
             use_kb=True
         )
         
-        # Сохраняем в БД
+        # Сохраняем в БД (без инкремента лимитов)
         database.save_message(user_id, assistant_type, query, answer, response_time)
-        database.increment_daily_usage(user_id)
+        # database.increment_daily_usage(user_id)  # ← закомментировано: лимиты отключены
         
         # Удаляем сообщение о процессе
         await processing_msg.delete()
         
-        # Отправляем ответ
-        footer = f"\n\n💡 Осталось вопросов сегодня: {remaining - 1}"
-        
+        # ✅ Отправляем ответ БЕЗ футера с лимитами
         await message.answer(
-            sanitize_markdown(answer) + footer,
+            sanitize_markdown(answer),
             parse_mode="Markdown"
         )
         
+    except TelegramBadRequest as e:
+        logging.warning(f"Telegram API error: {e}")
+        await processing_msg.edit_text(
+            "⚠️ Ошибка форматирования ответа. Попробуйте задать вопрос иначе."
+        )
     except Exception as e:
         logging.error(f"Ошибка обработки сообщения: {e}", exc_info=True)
         await processing_msg.edit_text(
@@ -485,27 +655,35 @@ async def main():
     dp.message.register(cmd_menu, Command("menu"))
     dp.message.register(cmd_stats, Command("stats"))
     
-    # Регистрация callback обработчиков
+    # Регистрация callback обработчиков: ОСНОВНЫЕ
     dp.callback_query.register(
         handle_assistant_selection, 
         F.data.startswith("assistant_")
     )
     dp.callback_query.register(handle_show_tests, F.data == "show_tests")
-    dp.callback_query.register(handle_about_project, F.data == "about_project")
-    dp.callback_query.register(handle_my_stats, F.data == "my_stats")
+    dp.callback_query.register(handle_my_stats, F.data == "my_stats")  # сохранён для совместимости
     dp.callback_query.register(handle_back_to_menu, F.data == "back_to_menu")
+    
+    # Регистрация обработчиков: НОВЫЕ МЕНЮ (ИЕРАРХИЯ)
+    dp.callback_query.register(handle_menu_career, F.data == "menu_career")
+    dp.callback_query.register(handle_menu_support, F.data == "menu_support")
+    dp.callback_query.register(handle_menu_tools, F.data == "menu_tools")
+    dp.callback_query.register(handle_about_bot, F.data == "about_bot")
+    
+    # Регистрация обработчиков: ПОДМЕНЮ КАРЬЕРНОГО ПОМОЩНИКА (ОБНОВЛЁННЫЕ)
+    dp.callback_query.register(handle_career_diagnostics, F.data == "career_diagnostics")
+    dp.callback_query.register(handle_career_resume, F.data == "career_resume")
+    dp.callback_query.register(handle_career_plan, F.data == "career_plan")
     
     # Регистрация обработчика текстовых сообщений
     dp.message.register(handle_text_message, F.text)
     
-    # Установка команд в меню бота
+    # Установка команд в меню бота (только /start)
     await bot.set_my_commands([
         BotCommand(command="start", description="🚀 Начать работу"),
-        BotCommand(command="menu", description="📋 Главное меню"),
-        BotCommand(command="help", description="❓ Помощь"),
     ])
     
-    logging.info("✅ Бот запущен!")
+    logging.info("✅ Бот запущен с иерархическим меню (лимиты отключены)!")
     
     try:
         await dp.start_polling(bot)
@@ -517,4 +695,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logging.info("👋 Бот остановлен")
+        logging.info("👋 Бот остановлен пользователем")
+    except Exception as e:
+        logging.critical(f"❌ Критическая ошибка запуска: {e}", exc_info=True)
