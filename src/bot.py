@@ -226,7 +226,7 @@ async def main():
     dp.message.register(cmd_start, Command("start"))
     dp.message.register(cmd_help, Command("help"))
     dp.message.register(cmd_stats, Command("stats"))
-    dp.message.register(handle_message, F.text)
+    dp.message.register(handle_message, F.text & ~F.text.startswith('/'))
 
     await bot_instance.set_my_commands([
         BotCommand(command="start", description="🚀 Начать работу"),
