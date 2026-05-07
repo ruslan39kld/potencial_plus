@@ -69,8 +69,31 @@ class Database:
                 )
             """)
             
+            # Таблица состояний диалога
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_states (
+                    user_id INTEGER PRIMARY KEY,
+                    current_topic TEXT,
+                    dialog_level INTEGER DEFAULT 0,
+                    last_request_type TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Таблица истории чата (отдельные сообщения)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS conversation_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    role TEXT,
+                    content TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (user_id)
+                )
+            """)
+
             conn.commit()
-    
+
     def register_user(self, user_id: int, username: str = None, 
                      first_name: str = None, last_name: str = None):
         """Регистрация нового пользователя"""
@@ -237,3 +260,52 @@ class Database:
                 "total_messages": total_messages,
                 "avg_response_time_ms": int(avg_response_time)
             }
+
+    def save_conversation_message(self, user_id: int, role: str, content: str):
+        """Сохраняет одно сообщение (user или assistant) в историю чата"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO conversation_messages (user_id, role, content)
+                VALUES (?, ?, ?)
+            """, (user_id, role, content))
+            conn.commit()
+
+    def get_conversation_history(self, user_id: int, limit: int = 10) -> List[Dict]:
+        """Возвращает историю чата в формате [{role, content}, ...]"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT role, content FROM conversation_messages
+                WHERE user_id = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+            """, (user_id, limit))
+            rows = cursor.fetchall()
+        # Возвращаем в хронологическом порядке
+        return [dict(row) for row in reversed(rows)]
+
+    def update_dialog_level(self, user_id: int, level: int):
+        """Обновляет уровень диалога пользователя"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO user_states (user_id, dialog_level)
+                VALUES (?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    dialog_level = excluded.dialog_level,
+                    updated_at = CURRENT_TIMESTAMP
+            """, (user_id, level))
+            conn.commit()
+
+    def get_dialog_level(self, user_id: int) -> int:
+        """Возвращает текущий уровень диалога"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT dialog_level FROM user_states WHERE user_id = ?",
+                (user_id,)
+            )
+            result = cursor.fetchone()
+        return result[0] if result else 0

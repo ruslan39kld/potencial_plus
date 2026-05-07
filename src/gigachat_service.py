@@ -15,6 +15,44 @@ import config
 from knowledge_base import get_system_prompt
 
 
+QUESTION_TREES = {
+    "поиск_работы": [
+        "Какой доход хотите получать?",
+        "В какой сфере есть опыт?",
+        "Как срочно нужна работа?",
+        "Готовы к вахте или только в своём городе?",
+        "Есть ли финансовые обязательства (долги)?"
+    ],
+    "резюме": [
+        "Есть ли уже резюме или делаем с нуля?",
+        "Какая ваша профессия и опыт?",
+        "Какие были достижения на работе?",
+        "На какую должность хотите откликаться?"
+    ],
+    "финансы": [
+        "Какой сейчас доход?",
+        "Есть ли долги? Какая сумма?",
+        "Сколько нужно в месяц на жизнь минимум?",
+        "Какую цель по накоплениям ставите?"
+    ],
+    "психология": [
+        "Что именно вас беспокоит больше всего?",
+        "Как давно появилась эта тревога?",
+        "Что мешает сделать первый шаг?"
+    ],
+    "юридическая": [
+        "О каком именно документе или ситуации идёт речь?",
+        "Уже есть подписанный договор или только предлагают?",
+        "Что именно вызывает сомнения?"
+    ],
+    "общий": [
+        "Расскажите подробнее о вашей ситуации.",
+        "Какой результат вы хотите получить?",
+        "Что уже пробовали сделать?"
+    ]
+}
+
+
 class GigaChatService:
     """Сервис для работы с GigaChat API с новой базой знаний"""
     
@@ -393,3 +431,114 @@ class GigaChatService:
         }
         
         return fallback_messages.get(assistant_type, fallback_messages['career'])
+
+    def classify_request(self, message: str) -> str:
+        """Определяет тип запроса пользователя"""
+        message_lower = message.lower()
+        if any(w in message_lower for w in ["работ", "вакан", "трудоустр", "найти работу", "ищу работу"]):
+            return "поиск_работы"
+        elif any(w in message_lower for w in ["резюме", "cv", "портфолио"]):
+            return "резюме"
+        elif any(w in message_lower for w in ["где смотреть", "где искать", "платформ", "сайт", "hh", "superjob", "tempojob"]):
+            return "вакансии_ссылки"
+        elif any(w in message_lower for w in ["деньг", "долг", "финанс", "копить", "накоп", "бюджет"]):
+            return "финансы"
+        elif any(w in message_lower for w in ["страшно", "боюсь", "тревож", "страх", "нервничаю"]):
+            return "психология"
+        elif any(w in message_lower for w in ["договор", "права", "юрид", "тк рф", "трудовой"]):
+            return "юридическая"
+        else:
+            return "общий"
+
+    def _build_deep_support_prompt(self, request_type: str, dialog_level: int, history: list) -> str:
+        """Создаёт промпт с инструкциями для глубокого сопровождения"""
+        base_prompt = """Ты — карьерный консультант проекта Potencial Plus.
+
+ВАЖНО:
+1. Отвечай коротко (до 1000 символов)
+2. Задавай уточняющие вопросы постепенно — по одному за раз
+3. Давай конкретные советы, а не общие фразы
+4. Веди диалог до конкретного плана действий
+5. Реагируй на эмоции пользователя с поддержкой
+
+СТРУКТУРА ОТВЕТА:
+1. Краткий совет или реакция (2-3 предложения)
+2. Один уточняющий вопрос (если нужно)
+3. Предложение следующего шага
+"""
+        if request_type == "вакансии_ссылки":
+            base_prompt += """\n\nПОЛЕЗНЫЕ РЕСУРСЫ:
+- tempojob.org — вахтовые вакансии
+- russian.works — международные возможности
+- hh.ru, SuperJob — основные площадки
+
+Дай ссылки и спроси, что именно ищет человек."""
+
+        if dialog_level == 0:
+            base_prompt += "\n\nЭто первое сообщение — установи тёплый контакт, задай 1-2 уточняющих вопроса."
+        elif dialog_level < 5:
+            base_prompt += f"\n\nУровень диалога: {dialog_level}. Продолжай уточнять детали, не торопись с советами."
+        else:
+            base_prompt += "\n\nДостаточно информации — дай конкретный пошаговый план действий."
+
+        return base_prompt
+
+    async def gigachat_api_call(self, system_prompt: str, user_message: str, history: list) -> str:
+        """Вызов GigaChat API с учётом истории диалога"""
+        history_context = ""
+        if history:
+            recent = history[-6:]
+            parts = []
+            for msg in recent:
+                role_label = "Пользователь" if msg.get("role") == "user" else "Ассистент"
+                content = msg.get("content", "")[:300]
+                parts.append(f"{role_label}: {content}")
+            history_context = "\n\nИСТОРИЯ ДИАЛОГА:\n" + "\n".join(parts)
+
+        full_prompt = system_prompt + history_context + f"\n\nПОЛЬЗОВАТЕЛЬ: {user_message}\n\nОТВЕТ:"
+
+        with GigaChat(
+            credentials=self.auth_key,
+            scope=self.scope,
+            model=self.model,
+            verify_ssl_certs=False
+        ) as giga:
+            response = giga.chat(full_prompt)
+            return response.choices[0].message.content
+
+    async def get_context_aware_response(self, user_message: str, history: list, user_id: int) -> str:
+        """Генерирует ответ с глубоким сопровождением и уточняющими вопросами"""
+        async with self._semaphore:
+            start_time = time.time()
+            request_type = self.classify_request(user_message)
+            dialog_level = len(history)
+
+            logging.info(f"[GigaChat] context_aware: type={request_type}, level={dialog_level}, user={user_id}")
+
+            system_prompt = self._build_deep_support_prompt(request_type, dialog_level, history)
+
+            if dialog_level < 5:
+                clarifying = QUESTION_TREES.get(request_type, QUESTION_TREES["общий"])
+                system_prompt += f"\n\nУточняющие вопросы (задай один из них при необходимости): {clarifying}"
+            else:
+                system_prompt += "\n\nТеперь дай конкретный план действий на основе собранной информации."
+
+            try:
+                response = await self.gigachat_api_call(system_prompt, user_message, history)
+
+                if len(response) > 1000:
+                    truncated = response[:950]
+                    last_period = truncated.rfind('.')
+                    if last_period > 500:
+                        response = truncated[:last_period + 1]
+                    else:
+                        response = truncated.rsplit(' ', 1)[0] + '.'
+
+                response = self.sanitize_markdown(response)
+                ms = int((time.time() - start_time) * 1000)
+                logging.info(f"[GigaChat] context_aware done: {len(response)} chars, {ms}ms")
+                return response
+
+            except Exception as e:
+                logging.error(f"[GigaChat] get_context_aware_response error: {e}", exc_info=True)
+                return self._fallback_response('career')
